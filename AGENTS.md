@@ -56,7 +56,21 @@ rm -rf data/pglite
 pnpm dev
 ```
 
-## 5. Core Engineering Rules
+## 5. Git Push (This Repo)
+
+When you need to push to GitHub from this repo (e.g. after committing), use the SSH deploy key so the push succeeds in agent/CI environments. Details: `doc/DEVELOPING.md` § Git Deploy Key.
+
+- Ensure `origin` is SSH: `git remote set-url origin git@github.com:nightmare-rg/paperclip.git` (if it was HTTPS).
+- Then:
+
+```sh
+export GIT_SSH_COMMAND="ssh -i data/deploy-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+git push origin master
+```
+
+The private key lives at `data/deploy-key` (gitignored); the public key must be added in GitHub as a deploy key with write access.
+
+## 6. Core Engineering Rules
 
 1. Keep changes company-scoped.
 Every domain entity should be scoped to a company and company boundaries must be enforced in routes/services.
@@ -78,7 +92,7 @@ If you change schema/API behavior, update all impacted layers:
 4. Do not replace strategic docs wholesale unless asked.
 Prefer additive updates. Keep `doc/SPEC.md` and `doc/SPEC-implementation.md` aligned.
 
-## 6. Database Change Workflow
+## 7. Database Change Workflow
 
 When changing data model:
 
@@ -100,7 +114,7 @@ Notes:
 - `packages/db/drizzle.config.ts` reads compiled schema from `dist/schema/*.js`
 - `pnpm db:generate` compiles `packages/db` first
 
-## 7. Verification Before Hand-off
+## 8. Verification Before Hand-off
 
 Run this full check before claiming done:
 
@@ -112,7 +126,7 @@ pnpm build
 
 If anything cannot be run, explicitly report what was not run and why.
 
-## 8. API and Auth Expectations
+## 9. API and Auth Expectations
 
 - Base path: `/api`
 - Board access is treated as full-control operator context
@@ -126,13 +140,13 @@ When adding endpoints:
 - write activity log entries for mutations
 - return consistent HTTP errors (`400/401/403/404/409/422/500`)
 
-## 9. UI Expectations
+## 10. UI Expectations
 
 - Keep routes and nav aligned with available API surface
 - Use company selection context for company-scoped pages
 - Surface failures clearly; do not silently ignore API errors
 
-## 10. Definition of Done
+## 11. Definition of Done
 
 A change is done when all are true:
 
