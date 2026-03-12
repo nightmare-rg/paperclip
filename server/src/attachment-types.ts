@@ -1,10 +1,10 @@
 /**
  * Shared attachment content-type configuration.
  *
- * By default only image types are allowed.  Set the
+ * By default, image types, PDF and Markdown are allowed. Set the
  * `PAPERCLIP_ALLOWED_ATTACHMENT_TYPES` environment variable to a
- * comma-separated list of MIME types or wildcard patterns to expand the
- * allowed set.
+ * comma-separated list of MIME types or wildcard patterns to override
+ * or extend the allowed set.
  *
  * Examples:
  *   PAPERCLIP_ALLOWED_ATTACHMENT_TYPES=image/*,application/pdf
@@ -21,6 +21,9 @@ export const DEFAULT_ALLOWED_TYPES: readonly string[] = [
   "image/jpg",
   "image/webp",
   "image/gif",
+  "application/pdf",
+  "text/markdown",
+  "text/x-markdown",
 ];
 
 /**

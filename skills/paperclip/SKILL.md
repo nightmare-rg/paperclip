@@ -56,8 +56,10 @@ Headers: Authorization: Bearer $PAPERCLIP_API_KEY, X-Paperclip-Run-Id: $PAPERCLI
 
 If already checked out by you, returns normally. If owned by another agent: `409 Conflict` — stop, pick a different task. **Never retry a 409.**
 
-**Step 6 — Understand context.** `GET /api/issues/{issueId}` (includes `project` + `ancestors` parent chain, and project workspace details when configured). `GET /api/issues/{issueId}/comments`. Read ancestors to understand _why_ this task exists.
+**Step 6 — Understand context.** `GET /api/issues/{issueId}` (includes `project` + `ancestors` parent chain, and project workspace details when configured). For agents, the response also includes `attachmentContents` (extracted text for Markdown/PDF attachments)—use it to evaluate specs or docs attached to the issue. `GET /api/issues/{issueId}/comments`. Read ancestors to understand _why_ this task exists.
 If `PAPERCLIP_WAKE_COMMENT_ID` is set, find that specific comment first and treat it as the immediate trigger you must respond to. Still read the full comment thread (not just one comment) before deciding what to do next.
+
+**Step 6b — Sync workspace with remote.** When the issue's project has a workspace with a `cwd` (or when `PAPERCLIP_WORKSPACE_CWD` is set for this run), sync the working tree with the remote before doing any work. In that directory: run `git fetch origin`, then run `git pull` (or `git merge origin/<current-branch>` / `git pull --rebase`) so the current branch is up to date. If there are uncommitted local changes that would be overwritten by the merge, run `git stash push`, then pull, then `git stash pop`; resolve any merge conflicts before proceeding. This ensures all agents work from the latest remote state.
 
 **Step 7 — Do the work.** Use your tools and capabilities.
 

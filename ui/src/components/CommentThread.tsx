@@ -10,6 +10,7 @@ import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./Ma
 import { StatusBadge } from "./StatusBadge";
 import { AgentIcon } from "./AgentIconPicker";
 import { formatDateTime } from "../lib/utils";
+import { ATTACHMENT_ACCEPT } from "../lib/attachment-accept";
 
 interface CommentWithRunMeta extends IssueComment {
   runId?: string | null;
@@ -364,6 +365,7 @@ export function CommentThread({
           mentions={mentions}
           onSubmit={handleSubmit}
           imageUploadHandler={imageUploadHandler}
+          onAttachFile={onAttachImage}
           contentClassName="min-h-[60px] text-sm"
         />
         <div className="flex items-center justify-end gap-3">
@@ -372,7 +374,7 @@ export function CommentThread({
               <input
                 ref={attachInputRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
+                accept={ATTACHMENT_ACCEPT}
                 className="hidden"
                 onChange={handleAttachFile}
               />
@@ -381,7 +383,7 @@ export function CommentThread({
                 size="icon-sm"
                 onClick={() => attachInputRef.current?.click()}
                 disabled={attaching}
-                title="Attach image"
+                title="Attach file"
               >
                 <Paperclip className="h-4 w-4" />
               </Button>

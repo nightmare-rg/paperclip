@@ -12,6 +12,7 @@ interface InlineEditorProps {
   placeholder?: string;
   multiline?: boolean;
   imageUploadHandler?: (file: File) => Promise<string>;
+  onAttachFile?: (file: File) => Promise<void>;
   mentions?: MentionOption[];
 }
 
@@ -26,11 +27,17 @@ export function InlineEditor({
   placeholder = "Click to edit...",
   multiline = false,
   imageUploadHandler,
+  onAttachFile,
   mentions,
 }: InlineEditorProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const onAttachFileRef = useRef(onAttachFile);
+  onAttachFileRef.current = onAttachFile;
+  const imageUploadHandlerRef = useRef(imageUploadHandler);
+  imageUploadHandlerRef.current = imageUploadHandler;
 
   useEffect(() => {
     setDraft(value);
@@ -83,6 +90,7 @@ export function InlineEditor({
             placeholder={placeholder}
             contentClassName={className}
             imageUploadHandler={imageUploadHandler}
+            onAttachFile={onAttachFile}
             mentions={mentions}
             onSubmit={commit}
           />
@@ -129,20 +137,61 @@ export function InlineEditor({
   // (e.g. <p> cannot contain the <div>/<p> elements that markdown produces)
   const DisplayTag = value && multiline ? "div" : Tag;
 
+  const canDrop = !!(onAttachFile || imageUploadHandler);
+
+  function handleDisplayDragOver(e: React.DragEvent) {
+    if (!canDrop) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }
+
+  function handleDisplayDragLeave(e: React.DragEvent) {
+    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) {
+      setIsDragOver(false);
+    }
+  }
+
+  function handleDisplayDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    const nonImages = files.filter((f) => !f.type.startsWith("image/"));
+    if (nonImages.length === 0) return;
+    const attachFn = onAttachFileRef.current;
+    const uploadFn = imageUploadHandlerRef.current;
+    nonImages.forEach((file) => {
+      if (attachFn) {
+        attachFn(file).catch(() => {});
+      } else if (uploadFn) {
+        uploadFn(file).catch(() => {});
+      }
+    });
+  }
+
   return (
     <DisplayTag
       className={cn(
-        "cursor-pointer rounded hover:bg-accent/50 transition-colors overflow-hidden",
+        "relative cursor-pointer rounded hover:bg-accent/50 transition-colors overflow-hidden",
+        isDragOver && "ring-1 ring-primary/60 bg-accent/20",
         pad,
         !value && "text-muted-foreground italic",
         className
       )}
       onClick={() => setEditing(true)}
+      onDragOver={canDrop ? handleDisplayDragOver : undefined}
+      onDragLeave={canDrop ? handleDisplayDragLeave : undefined}
+      onDrop={canDrop ? handleDisplayDrop : undefined}
     >
       {value && multiline ? (
         <MarkdownBody>{value}</MarkdownBody>
       ) : (
         value || placeholder
+      )}
+      {isDragOver && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded border border-dashed border-primary/80 bg-primary/10 text-xs font-medium text-primary">
+          Drop file to attach
+        </div>
       )}
     </DisplayTag>
   );

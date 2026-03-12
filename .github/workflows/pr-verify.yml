@@ -40,3 +40,15 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  # Reproducible gate: full typecheck + test + build inside Docker (catches e.g. missing type declarations)
+  verify-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and verify in Docker
+        run: docker build --target verify -t paperclip-verify .

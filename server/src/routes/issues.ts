@@ -27,6 +27,7 @@ import { forbidden, HttpError, unauthorized } from "../errors.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { shouldWakeAssigneeOnCheckout } from "./issues-checkout-wakeup.js";
 import { isAllowedContentType, MAX_ATTACHMENT_BYTES } from "../attachment-types.js";
+import { getAttachmentContents } from "../attachment-contents.js";
 
 export function issueRoutes(db: Db, storage: StorageService) {
   const router = Router();
@@ -304,6 +305,13 @@ export function issueRoutes(db: Db, storage: StorageService) {
     const mentionedProjects = mentionedProjectIds.length > 0
       ? await projectsSvc.listByIds(issue.companyId, mentionedProjectIds)
       : [];
+
+    let attachmentContents: Awaited<ReturnType<typeof getAttachmentContents>> | undefined;
+    if (req.actor.type === "agent") {
+      const attachments = await svc.listAttachments(issue.id);
+      attachmentContents = await getAttachmentContents(attachments, storage);
+    }
+
     res.json({
       ...issue,
       goalId: goal?.id ?? issue.goalId,
@@ -311,6 +319,7 @@ export function issueRoutes(db: Db, storage: StorageService) {
       project: project ?? null,
       goal: goal ?? null,
       mentionedProjects,
+      ...(attachmentContents !== undefined ? { attachmentContents } : {}),
     });
   });
 
@@ -1070,7 +1079,11 @@ export function issueRoutes(db: Db, storage: StorageService) {
       res.status(400).json({ error: "Missing file field 'file'" });
       return;
     }
-    const contentType = (file.mimetype || "").toLowerCase();
+    let contentType = (file.mimetype || "").toLowerCase();
+    // Browsers often send text/plain for .md files; normalise by extension.
+    if (contentType === "text/plain" && /\.mdx?$/i.test(file.originalname || "")) {
+      contentType = "text/markdown";
+    }
     if (!isAllowedContentType(contentType)) {
       res.status(422).json({ error: `Unsupported attachment type: ${contentType || "unknown"}` });
       return;

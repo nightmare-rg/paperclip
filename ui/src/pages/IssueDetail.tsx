@@ -11,6 +11,7 @@ import { useCompany } from "../context/CompanyContext";
 import { usePanel } from "../context/PanelContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { ATTACHMENT_ACCEPT } from "../lib/attachment-accept";
 import { readIssueDetailBreadcrumb } from "../lib/issueDetailBreadcrumb";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { relativeTime, cn, formatTokens } from "../lib/utils";
@@ -676,6 +677,9 @@ export function IssueDetail() {
             const attachment = await uploadAttachment.mutateAsync(file);
             return attachment.contentPath;
           }}
+          onAttachFile={async (file) => {
+            await uploadAttachment.mutateAsync(file);
+          }}
         />
       </div>
 
@@ -686,7 +690,7 @@ export function IssueDetail() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept={ATTACHMENT_ACCEPT}
               className="hidden"
               onChange={handleFilePicked}
             />
@@ -697,7 +701,7 @@ export function IssueDetail() {
               disabled={uploadAttachment.isPending}
             >
               <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-              {uploadAttachment.isPending ? "Uploading..." : "Upload image"}
+              {uploadAttachment.isPending ? "Uploading..." : "Upload file"}
             </Button>
           </div>
         </div>

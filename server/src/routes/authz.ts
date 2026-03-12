@@ -1,10 +1,16 @@
 import type { Request } from "express";
 import { forbidden, unauthorized } from "../errors.js";
 
+function isAgentCreateRequest(req: Request): boolean {
+  if (req.method !== "POST" && req.method !== "post") return false;
+  const path = (req.originalUrl ?? req.url ?? "").split("?")[0];
+  return /\/companies\/[^/]+\/(agents|agent-hires)$/.test(path);
+}
+
 export function assertBoard(req: Request) {
-  if (req.actor.type !== "board") {
-    throw forbidden("Board access required");
-  }
+  if (req.actor.type === "board") return;
+  if (req.actor.type === "agent" && isAgentCreateRequest(req)) return;
+  throw forbidden("Board access required");
 }
 
 export function assertCompanyAccess(req: Request, companyId: string) {

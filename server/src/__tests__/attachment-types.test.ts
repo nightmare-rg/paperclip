@@ -6,12 +6,19 @@ import {
 } from "../attachment-types.js";
 
 describe("parseAllowedTypes", () => {
-  it("returns default image types when input is undefined", () => {
+  it("returns default allowed types when input is undefined", () => {
     expect(parseAllowedTypes(undefined)).toEqual([...DEFAULT_ALLOWED_TYPES]);
   });
 
-  it("returns default image types when input is empty string", () => {
+  it("returns default allowed types when input is empty string", () => {
     expect(parseAllowedTypes("")).toEqual([...DEFAULT_ALLOWED_TYPES]);
+  });
+
+  it("includes images, PDF and Markdown in default allowed types", () => {
+    expect(DEFAULT_ALLOWED_TYPES).toContain("image/png");
+    expect(DEFAULT_ALLOWED_TYPES).toContain("application/pdf");
+    expect(DEFAULT_ALLOWED_TYPES).toContain("text/markdown");
+    expect(DEFAULT_ALLOWED_TYPES).toContain("text/x-markdown");
   });
 
   it("parses comma-separated types", () => {

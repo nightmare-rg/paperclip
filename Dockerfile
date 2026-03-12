@@ -23,6 +23,12 @@ COPY packages/adapters/pi-local/package.json packages/adapters/pi-local/
 
 RUN pnpm install --frozen-lockfile
 
+# CI verification: typecheck + test + full build in container (reproducible gate before merge)
+FROM deps AS verify
+WORKDIR /app
+COPY . .
+RUN pnpm -r typecheck && pnpm test:run && pnpm build
+
 FROM base AS build
 WORKDIR /app
 COPY --from=deps /app /app

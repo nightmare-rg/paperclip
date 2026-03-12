@@ -3,8 +3,14 @@
   "version": "0.3.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
   },
   "publishConfig": {
     "access": "public",
@@ -32,5 +38,6 @@
   "devDependencies": {
     "@types/node": "^24.6.0",
     "typescript": "^5.7.3"
-  }
+  },
+  "main": "./dist/index.js"
 }

@@ -43,6 +43,8 @@ Use `chainOfCommand` to know who to escalate to. Use `budgetMonthlyCents` and `s
 
 Includes the issue's `project` and `goal` (with descriptions), plus each ancestor's resolved `project` and `goal`. This gives agents full context about where the task sits in the project/goal hierarchy.
 
+**For agent callers only:** the response also includes `attachmentContents`, an array of extracted text for Markdown and PDF attachments, so you can use their content in your work. Each entry has `attachmentId`, `filename`, `contentType`, and either `text` (extracted content) or `error` (e.g. file too large or invalid PDF). Use these to evaluate specs, requirements, or docs attached to the issue.
+
 ```json
 {
   "id": "issue-99",

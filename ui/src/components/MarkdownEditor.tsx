@@ -50,6 +50,8 @@ interface MarkdownEditorProps {
   contentClassName?: string;
   onBlur?: () => void;
   imageUploadHandler?: (file: File) => Promise<string>;
+  /** Called when a non-image file (e.g. PDF, Markdown) is dropped onto the editor. */
+  onAttachFile?: (file: File) => Promise<void>;
   bordered?: boolean;
   /** List of mentionable entities. Enables @-mention autocomplete. */
   mentions?: MentionOption[];
@@ -197,6 +199,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   contentClassName,
   onBlur,
   imageUploadHandler,
+  onAttachFile,
   bordered = true,
   mentions,
   onSubmit,
@@ -206,7 +209,98 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   const latestValueRef = useRef(value);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isAttachDragOver, setIsAttachDragOver] = useState(false);
   const dragDepthRef = useRef(0);
+  const onAttachFileRef = useRef(onAttachFile);
+  onAttachFileRef.current = onAttachFile;
+
+  // Native capture listener — intercepts non-image file drops before Lexical.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // macOS Finder gives empty items during dragenter/dragover (security restriction).
+    // Safari sometimes reports "public.file-url" instead of "Files".
+    // Check all known type tokens case-insensitively to be safe.
+    function hasAnyFile(dt: DataTransfer | null): boolean {
+      if (!dt) return false;
+      const types = Array.from(dt.types).map((t) => t.toLowerCase());
+      if (types.some((t) => t === "files" || t === "public.file-url" || t === "application/x-moz-file")) return true;
+      return Array.from(dt.items).some((i) => i.kind === "file");
+    }
+
+    function isNonImage(file: File): boolean {
+      return !file.type.startsWith("image/");
+    }
+
+    const onDragOverCapture = (evt: globalThis.DragEvent) => {
+      // Always allow the drop when we have any upload handler.
+      // Safari intermittently reports different type tokens for PDFs ("public.file-url"
+      // vs "Files"), so we can't reliably gate on file detection here.
+      if (onAttachFileRef.current || imageUploadHandlerRef.current) {
+        evt.preventDefault();
+        if (evt.dataTransfer) evt.dataTransfer.dropEffect = "copy";
+      }
+    };
+
+    const onDragLeaveCapture = (evt: globalThis.DragEvent) => {
+      if (!el.contains(evt.relatedTarget as Node | null)) {
+        setIsAttachDragOver(false);
+      }
+    };
+
+    const onDropCapture = (evt: globalThis.DragEvent) => {
+      const files = Array.from(evt.dataTransfer?.files ?? []);
+      const nonImages = files.filter(isNonImage);
+      setIsAttachDragOver(false);
+
+      if (nonImages.length === 0) return;
+
+      const attachFn = onAttachFileRef.current;
+      const uploadFn = imageUploadHandlerRef.current;
+
+      if (!attachFn && !uploadFn) return;
+
+      // We own this drop — prevent Lexical from also handling it.
+      evt.stopImmediatePropagation();
+      evt.preventDefault();
+
+      nonImages.forEach((file) => {
+        if (attachFn) {
+          // Dedicated attach handler (e.g. IssueDetail): upload as attachment.
+          attachFn(file).catch((err) => {
+            setUploadError(err instanceof Error ? err.message : "Upload failed");
+          });
+        } else if (uploadFn) {
+          // Fallback (e.g. NewIssueDialog): upload via image handler, insert as link.
+          uploadFn(file)
+            .then((url) => {
+              ref.current?.insertMarkdown(`[${file.name}](${url})`);
+            })
+            .catch((err) => {
+              setUploadError(err instanceof Error ? err.message : "Upload failed");
+            });
+        }
+      });
+    };
+
+    const onDragEnterCapture = (evt: globalThis.DragEvent) => {
+      if (hasAnyFile(evt.dataTransfer) && (onAttachFileRef.current || imageUploadHandlerRef.current)) {
+        setIsAttachDragOver(true);
+      }
+    };
+
+    el.addEventListener("dragenter", onDragEnterCapture, { capture: true });
+    el.addEventListener("dragover", onDragOverCapture, { capture: true });
+    el.addEventListener("dragleave", onDragLeaveCapture, { capture: true });
+    el.addEventListener("drop", onDropCapture, { capture: true });
+    return () => {
+      el.removeEventListener("dragenter", onDragEnterCapture, { capture: true });
+      el.removeEventListener("dragover", onDragOverCapture, { capture: true });
+      el.removeEventListener("dragleave", onDragLeaveCapture, { capture: true });
+      el.removeEventListener("drop", onDropCapture, { capture: true });
+    };
+  }, []);
 
   // Stable ref for imageUploadHandler so plugins don't recreate on every render
   const imageUploadHandlerRef = useRef(imageUploadHandler);
@@ -473,7 +567,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     return Array.from(evt.dataTransfer?.types ?? []).includes("Files");
   }
 
+  function isImageFile(file: File) {
+    return file.type.startsWith("image/");
+  }
+
   const canDropImage = Boolean(imageUploadHandler);
+  const canDropFile = Boolean(onAttachFile);
+  const canDropAny = canDropImage || canDropFile;
 
   return (
     <div
@@ -534,11 +634,15 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       }}
       onDragEnter={(evt) => {
         if (!canDropImage || !hasFilePayload(evt)) return;
-        dragDepthRef.current += 1;
-        setIsDragOver(true);
+        const items = Array.from(evt.dataTransfer?.items ?? []);
+        const hasImage = items.some((i) => i.kind === "file" && i.type.startsWith("image/"));
+        if (hasImage) {
+          dragDepthRef.current += 1;
+          setIsDragOver(true);
+        }
       }}
       onDragOver={(evt) => {
-        if (!canDropImage || !hasFilePayload(evt)) return;
+        if (!canDropAny || !hasFilePayload(evt)) return;
         evt.preventDefault();
         evt.dataTransfer.dropEffect = "copy";
       }}
@@ -615,6 +719,16 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
           )}
         >
           Drop image to upload
+        </div>
+      )}
+      {isAttachDragOver && canDropFile && (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-1 z-40 flex items-center justify-center rounded-md border border-dashed border-primary/80 bg-primary/10 text-xs font-medium text-primary",
+            !bordered && "inset-0 rounded-sm",
+          )}
+        >
+          Drop file to attach
         </div>
       )}
       {uploadError && (

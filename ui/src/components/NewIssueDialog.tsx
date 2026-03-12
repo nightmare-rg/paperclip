@@ -8,6 +8,7 @@ import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
 import { assetsApi } from "../api/assets";
 import { queryKeys } from "../lib/queryKeys";
+import { ATTACHMENT_ACCEPT } from "../lib/attachment-accept";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
 import {
@@ -981,7 +982,7 @@ export function NewIssueDialog() {
           <input
             ref={attachInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
+            accept={ATTACHMENT_ACCEPT}
             className="hidden"
             onChange={handleAttachImage}
           />
@@ -991,7 +992,7 @@ export function NewIssueDialog() {
             disabled={uploadDescriptionImage.isPending}
           >
             <Paperclip className="h-3 w-3" />
-            {uploadDescriptionImage.isPending ? "Uploading..." : "Image"}
+            {uploadDescriptionImage.isPending ? "Uploading..." : "File"}
           </button>
 
           {/* More (dates) */}
