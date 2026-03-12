@@ -116,6 +116,12 @@ Configure storage provider/settings:
 pnpm paperclipai configure --section storage
 ```
 
+### Issue attachments (images, Markdown, PDF)
+
+Issues can have file attachments. **Allowed types:** by default images (PNG, JPEG, WebP, GIF), `application/pdf`, and `text/markdown` / `text/x-markdown`. Override with `PAPERCLIP_ALLOWED_ATTACHMENT_TYPES` (comma-separated MIME types or patterns, e.g. `image/*,application/pdf`). **Max size per file:** 10 MiB (configurable via `PAPERCLIP_ATTACHMENT_MAX_BYTES`).
+
+**Agent use:** When an agent calls `GET /api/issues/:id`, the response includes `attachmentContents`: for Markdown and PDF attachments the server extracts text and includes it so the agent can use specs, docs, or requirements from the attachments. Extraction limits: 5 MiB per attachment and 100k characters of text per attachment (env: `PAPERCLIP_ATTACHMENT_CONTENT_MAX_BYTES`, `PAPERCLIP_ATTACHMENT_TEXT_MAX_CHARS`). If a file is too large or invalid, the entry has an `error` message instead of `text`.
+
 ## Default Agent Workspaces
 
 When a local agent run has no resolved project/session workspace, Paperclip falls back to an agent home workspace under the instance root:
@@ -197,6 +203,22 @@ To wipe local dev data and start fresh:
 rm -rf ~/.paperclip/instances/default/db
 pnpm dev
 ```
+
+## Git Deploy Key (optional)
+
+For agent or CI runs that need to push to the repo, an SSH deploy key can be used so the private key never leaves the machine.
+
+- **Private key:** `data/deploy-key` (do not commit; `data/` is gitignored)
+- **Public key:** `data/deploy-key.pub` — add this in GitHub: repo **Settings → Deploy keys → Add deploy key**. Paste the contents of `deploy-key.pub`; allow write access if you need push.
+
+To use the key for git from this repo:
+
+```sh
+export GIT_SSH_COMMAND="ssh -i data/deploy-key -o IdentitiesOnly=yes"
+git push origin main
+```
+
+If no key exists yet, generate one (e.g. `ssh-keygen -t ed25519 -f data/deploy-key -N "" -C "paperclip-deploy@github"`), then add the public key to GitHub as above.
 
 ## Optional: Use External Postgres
 
