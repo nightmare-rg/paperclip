@@ -247,6 +247,7 @@ export function Layout() {
             {isInstanceSettingsRoute ? <InstanceSidebar /> : <Sidebar />}
           </div>
           <div className="border-t border-r border-border px-3 py-2 bg-background">
+            <div className="text-xs text-muted-foreground mb-1.5" aria-hidden="true">v0.1</div>
             <div className="flex items-center gap-1">
               <SidebarNavItem
                 to="/docs"
@@ -294,6 +295,7 @@ export function Layout() {
             </div>
           </div>
           <div className="border-t border-r border-border px-3 py-2">
+            <div className="text-xs text-muted-foreground mb-1.5" aria-hidden="true">v0.1</div>
             <div className="flex items-center gap-1">
               <SidebarNavItem
                 to="/docs"
